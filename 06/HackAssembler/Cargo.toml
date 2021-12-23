@@ -8,3 +8,4 @@ authors = ["Henrique Delazeri <contato@hdelazeri.dev>"]
 
 [dependencies]
 clap = { version = "3.0.0-rc.7", features = ["derive"] }
+regex = "1.5.4"
