@@ -38,6 +38,95 @@ fn process_a_instruction(instruction: &str) -> String {
     result
 }
 
+fn split_c_instruction(instruction: &str) -> (&str, &str, &str) {
+    if instruction.split("=").count() == 2 {
+        let dest = instruction.split("=").nth(0).unwrap_or_default();
+        let comp = instruction.split("=").nth(1).unwrap_or_default().split(";").nth(0).unwrap();
+        let jmp = instruction.split(";").nth(1).unwrap_or_default();
+
+        return (dest, comp, jmp);
+    } else {
+        let dest = "";
+        let comp = instruction.split(";").nth(0).unwrap();
+        let jmp = instruction.split(";").nth(1).unwrap_or_default();
+
+        return (dest, comp, jmp);
+    }
+}
+
+fn process_c_instruction(instruction: &str) -> String {
+    let mut result = String::from("111");
+
+    let (dest, mut comp, jmp) = split_c_instruction(instruction);
+
+    // a bit
+    if comp.contains("M") {
+        result.push_str("1");
+    } else {
+        result.push_str("0");
+    }
+
+    let new_comp = comp.replace("M", "A");
+    comp = &new_comp;
+
+    // c bits
+    match comp {
+        "0" => result.push_str("101010"),
+        "1" => result.push_str("111111"),
+        "-1" => result.push_str("111010"),
+        "D" => result.push_str("001100"),
+        "A" => result.push_str("110000"),
+        "!D" => result.push_str("001101"),
+        "!A" => result.push_str("110001"),
+        "-D" => result.push_str("001111"),
+        "-A" => result.push_str("110011"),
+        "D+1" => result.push_str("011111"),
+        "A+1" => result.push_str("110111"),
+        "D-1" => result.push_str("001110"),
+        "A-1" => result.push_str("110010"),
+        "D+A" => result.push_str("000010"),
+        "D-A" => result.push_str("010011"),
+        "A-D" => result.push_str("000111"),
+        "D&A" => result.push_str("000000"),
+        "D|A" => result.push_str("010101"),
+        _ => panic!("Unknown comp: {}", comp)
+    }
+
+    // dest bits
+    if dest.contains("A") {
+        result.push_str("1");
+    } else {
+        result.push_str("0");
+    }
+
+    if dest.contains("D") {
+        result.push_str("1");
+    } else {
+        result.push_str("0");
+    }
+
+    if dest.contains("M") {
+        result.push_str("1");
+    } else {
+        result.push_str("0");
+    }
+
+    // jmp bits
+    match jmp {
+        "" => result.push_str("000"),
+        "JGT" => result.push_str("001"),
+        "JEQ" => result.push_str("010"),
+        "JGE" => result.push_str("011"),
+        "JLT" => result.push_str("100"),
+        "JNE" => result.push_str("101"),
+        "JLE" => result.push_str("110"),
+        "JMP" => result.push_str("111"),
+        _ => panic!("Unknown jmp: {}", jmp)
+    }
+
+    result
+}
+
 fn process_line(line: &str) -> Option<String> {
     let line = line.trim();
 
@@ -53,7 +142,7 @@ fn process_line(line: &str) -> Option<String> {
         return Some(process_a_instruction(line));
     }
 
-    Some(line.to_string())
+    Some(process_c_instruction(line))
 }
 
 fn process_file(args: &Args) -> io::Result<()> {
@@ -65,7 +154,7 @@ fn process_file(args: &Args) -> io::Result<()> {
         process_line(&line);
 
         if let Some(instruction) = process_line(&line) {
-            println!("{:?}", instruction);
+            // println!("{:?}", instruction);
 
             writer.write(instruction.as_bytes())?;
             writer.write("\n".as_bytes())?;
